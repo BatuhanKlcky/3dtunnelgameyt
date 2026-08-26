@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>3D Tunnel Pulse</title>
+  <title>3D Tunnel Pulse - Rush Edition</title>
   <style>
     * {
       box-sizing: border-box;
@@ -50,7 +50,7 @@
       text-shadow: 0 0 10px rgba(0,255,200,0.8);
     }
     .score-box {
-      font-size: 28px;
+      font-size: 32px;
       letter-spacing: 1px;
     }
     .high-score-box {
@@ -64,14 +64,20 @@
       text-shadow: 0 0 10px rgba(255,0,127,0.8);
       margin-top: 4px;
     }
+    .speed-meter {
+      font-size: 12px;
+      color: #00ffcc;
+      margin-top: 2px;
+      opacity: 0.8;
+    }
     #overlay {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(5, 5, 8, 0.75);
-      backdrop-filter: blur(8px);
+      background: rgba(5, 5, 8, 0.8);
+      backdrop-filter: blur(10px);
       z-index: 20;
       display: flex;
       flex-direction: column;
@@ -81,7 +87,6 @@
       text-align: center;
       pointer-events: auto;
       cursor: pointer;
-      transition: opacity 0.2s ease;
     }
     #overlay.hidden {
       opacity: 0;
@@ -90,33 +95,33 @@
     h1 {
       font-size: 42px;
       margin-bottom: 10px;
-      background: linear-gradient(45deg, #00f2fe, #4facfe, #ff007f);
+      background: linear-gradient(45deg, #00f2fe, #ff007f, #ffe600);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       text-transform: uppercase;
       letter-spacing: 3px;
     }
     p.subtitle {
-      font-size: 16px;
+      font-size: 15px;
       color: #a0a0c0;
-      margin-bottom: 30px;
-      max-width: 300px;
-      line-height: 1.4;
+      margin-bottom: 25px;
+      max-width: 320px;
+      line-height: 1.5;
     }
     .start-btn {
-      padding: 14px 36px;
-      font-size: 20px;
+      padding: 16px 40px;
+      font-size: 22px;
       font-weight: bold;
       color: #050508;
       background: #00ffcc;
       border: none;
       border-radius: 30px;
-      box-shadow: 0 0 20px rgba(0, 255, 204, 0.6);
+      box-shadow: 0 0 25px rgba(0, 255, 204, 0.8);
       animation: pulse 1.5s infinite;
     }
     @keyframes pulse {
       0% { transform: scale(1); box-shadow: 0 0 20px rgba(0, 255, 204, 0.6); }
-      50% { transform: scale(1.05); box-shadow: 0 0 35px rgba(0, 255, 204, 0.9); }
+      50% { transform: scale(1.06); box-shadow: 0 0 35px rgba(0, 255, 204, 1); }
       100% { transform: scale(1); box-shadow: 0 0 20px rgba(0, 255, 204, 0.6); }
     }
     .instructions {
@@ -124,11 +129,11 @@
       font-size: 13px;
       color: #8080a0;
       display: flex;
-      gap: 15px;
+      gap: 10px;
     }
     .tag {
       background: rgba(255,255,255,0.1);
-      padding: 4px 10px;
+      padding: 6px 12px;
       border-radius: 12px;
       border: 1px solid rgba(255,255,255,0.15);
     }
@@ -144,6 +149,7 @@
       <div>
         <div class="score-box" id="score">0</div>
         <div class="multiplier" id="multiplier">1x MULTIPLIER</div>
+        <div class="speed-meter" id="speed-meter">SPEED: 100%</div>
       </div>
       <div class="high-score-box">
         BEST: <span id="high-score">0</span>
@@ -152,62 +158,97 @@
   </div>
 
   <div id="overlay">
-    <h1 id="title">TUNNEL PULSE</h1>
-    <p class="subtitle" id="subtitle">Drag/Move to Steer.<br>Hold Click/Touch to Shrink & Boost!</p>
-    <button class="start-btn" id="start-btn">TAP TO PLAY</button>
+    <h1 id="title">TUNNEL RUSH</h1>
+    <p class="subtitle" id="subtitle">Parmağınla/Fareyle Yön Ver.<br><b>Basılı Tut:</b> Ufal & Hızlan!<br>Altın Küreleri Topla!</p>
+    <button class="start-btn" id="start-btn">OYNAMAĞA BAŞLA</button>
     <div class="instructions">
-      <span class="tag">⚡ Bug Fixed</span>
-      <span class="tag">🎯 1-Tap Control</span>
-      <span class="tag">🚀 Instant Replay</span>
+      <span class="tag">💎 Küre Topla</span>
+      <span class="tag">⚡ Zamanla Hızlanır</span>
+      <span class="tag">📱 Tam Mobil Uyum</span>
     </div>
   </div>
 
   <script>
+    // --- SES EFEKTLERİ SENTEZLEYİCİSİ (Tung Tung / Sashur) ---
     class SoundFx {
       constructor() {
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.ctx = null;
       }
+      init() {
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      // "Sashur / Wooosh" - Küçülme / Boost Sesi
       playBoost() {
-        if (this.ctx.state === 'suspended') this.ctx.resume();
+        this.init();
+        const bufferSize = this.ctx.sampleRate * 0.15;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(400, this.ctx.currentTime);
+        filter.frequency.exponentialRampToValueAtTime(1800, this.ctx.currentTime + 0.15);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.15);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start();
+      }
+
+      // "Tung!" - Küre Toplama / Geçiş Sesi
+      playTung(pitch = 520) {
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(pitch, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(pitch * 1.5, this.ctx.currentTime + 0.08);
+
+        gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.12);
+      }
+
+      // "Plop/Pass" - Engel Geçme Sesi
+      playPass() {
+        this.playTung(380);
+      }
+
+      // Güm/Crash Sesi
+      playCrash() {
+        this.init();
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(120, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(300, this.ctx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.15);
+        osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.35);
+
+        gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.35);
+
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start();
-        osc.stop(this.ctx.currentTime + 0.15);
-      }
-      playPass() {
-        if (this.ctx.state === 'suspended') this.ctx.resume();
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(440, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.1);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start();
-        osc.stop(this.ctx.currentTime + 0.1);
-      }
-      playCrash() {
-        if (this.ctx.state === 'suspended') this.ctx.resume();
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(150, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.3);
-        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.3);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start();
-        osc.stop(this.ctx.currentTime + 0.3);
+        osc.stop(this.ctx.currentTime + 0.35);
       }
     }
 
@@ -217,23 +258,30 @@
     let player, playerLight;
     let tunnelRings = [];
     let obstacles = [];
+    let gems = [];
     let particles;
     let isHolding = false;
     let gameState = 'MENU';
     let score = 0;
     let highScore = localStorage.getItem('tunnel_high_score') || 0;
     
-    let speed = 0.18;
-    let baseSpeed = 0.18;
-    let boostSpeed = 0.35;
-    
+    // Yavaş Yavaş Hızlanma Parametreleri
+    let initialSpeed = 0.16;
+    let currentBaseSpeed = 0.16;
+    let maxBaseSpeed = 0.42; // Ulaşabileceği maksimum taban hız
+    let speed = 0.16;
+    let boostMultiplier = 1.6;
+
     let targetX = 0, targetY = 0;
     let tunnelRadius = 3.5;
     let combo = 1;
+    let hueOffset = 0;
+    let cameraShake = 0;
 
     const scoreEl = document.getElementById('score');
     const highScoreEl = document.getElementById('high-score');
     const multiplierEl = document.getElementById('multiplier');
+    const speedMeterEl = document.getElementById('speed-meter');
     const overlay = document.getElementById('overlay');
     const titleEl = document.getElementById('title');
     const subtitleEl = document.getElementById('subtitle');
@@ -245,7 +293,7 @@
       const container = document.getElementById('game-container');
 
       scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x050508, 0.04);
+      scene.fog = new THREE.FogExp2(0x050508, 0.035);
 
       camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
       camera.position.set(0, 0, 5);
@@ -255,11 +303,12 @@
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       container.appendChild(renderer.domElement);
 
+      // Oyuncu (Küre)
       const playerGeo = new THREE.SphereGeometry(0.35, 16, 16);
       const playerMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true });
       player = new THREE.Mesh(playerGeo, playerMat);
       
-      playerLight = new THREE.PointLight(0x00ffcc, 3, 12);
+      playerLight = new THREE.PointLight(0x00ffcc, 4, 15);
       player.add(playerLight);
       scene.add(player);
 
@@ -268,7 +317,8 @@
 
       window.addEventListener('resize', onWindowResize);
       
-      const handlePointerDown = () => {
+      // Mobil & Masaüstü Kontrolleri
+      const handlePointerDown = (e) => {
         if (gameState === 'MENU' || gameState === 'GAMEOVER') {
           startGame();
           return;
@@ -281,7 +331,6 @@
         isHolding = false;
       };
 
-      // NaN Oluşmasını Engeller Hareket Kontrolü
       const handlePointerMove = (e) => {
         let clientX = e.clientX;
         let clientY = e.clientY;
@@ -298,8 +347,8 @@
 
         if (isNaN(x) || isNaN(y)) return;
 
-        targetX = x * (tunnelRadius - 0.8);
-        targetY = y * (tunnelRadius - 0.8);
+        targetX = x * (tunnelRadius - 0.7);
+        targetY = y * (tunnelRadius - 0.7);
       };
 
       window.addEventListener('pointerdown', handlePointerDown);
@@ -315,9 +364,9 @@
       const ringGeo = new THREE.TorusGeometry(tunnelRadius, 0.03, 8, 24);
       for (let i = 0; i < 40; i++) {
         const ringMat = new THREE.MeshBasicMaterial({ 
-          color: i % 2 === 0 ? 0x00f2fe : 0xff007f, 
+          color: 0x00f2fe, 
           transparent: true, 
-          opacity: 0.4 
+          opacity: 0.45 
         });
         const ring = new THREE.Mesh(ringGeo, ringMat);
         ring.position.z = -i * 2.5;
@@ -328,7 +377,7 @@
 
     function createParticles() {
       const pGeo = new THREE.BufferGeometry();
-      const pCount = 300;
+      const pCount = 350;
       const posArray = new Float32Array(pCount * 3);
 
       for (let i = 0; i < pCount * 3; i += 3) {
@@ -348,43 +397,63 @@
       const type = Math.floor(Math.random() * 3);
 
       if (type === 0) {
-        const barGeo = new THREE.BoxGeometry(tunnelRadius * 1.8, 0.4, 0.4);
+        const barGeo = new THREE.BoxGeometry(tunnelRadius * 1.8, 0.35, 0.35);
         const barMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
         const bar = new THREE.Mesh(barGeo, barMat);
         group.add(bar);
-        group.userData = { rotSpeed: 0.012, type: 'bar' };
+        group.userData = { rotSpeed: (Math.random() > 0.5 ? 1 : -1) * 0.014, type: 'bar' };
       } else if (type === 1) {
-        const pillarGeo = new THREE.CylinderGeometry(1.0, 1.0, 0.4, 16);
-        const pillarMat = new THREE.MeshBasicMaterial({ color: 0x7f00ff });
+        const pillarGeo = new THREE.CylinderGeometry(0.95, 0.95, 0.4, 16);
+        const pillarMat = new THREE.MeshBasicMaterial({ color: 0x9900ff });
         const pillar = new THREE.Mesh(pillarGeo, pillarMat);
         group.add(pillar);
         group.userData = { rotSpeed: 0, type: 'pillar' };
       } else {
-        const ringGeo = new THREE.RingGeometry(0.8, tunnelRadius, 16, 1, 0, Math.PI * 1.3);
+        const ringGeo = new THREE.RingGeometry(0.85, tunnelRadius, 16, 1, 0, Math.PI * 1.3);
         const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, side: THREE.DoubleSide });
         const ring = new THREE.Mesh(ringGeo, ringMat);
         group.add(ring);
-        group.userData = { rotSpeed: -0.015, type: 'ring' };
+        group.userData = { rotSpeed: (Math.random() > 0.5 ? 1 : -1) * 0.016, type: 'ring' };
       }
 
       group.position.set(0, 0, zPos);
       scene.add(group);
       obstacles.push(group);
+
+      // Rastgele Altın Küre (Gem) Ekle
+      if (Math.random() > 0.4) {
+        spawnGem(zPos - 6);
+      }
     }
 
-    function removeObstacle(obs, index) {
-      scene.remove(obs);
-      obs.traverse((child) => {
+    function spawnGem(zPos) {
+      const gemGeo = new THREE.OctahedronGeometry(0.25, 0);
+      const gemMat = new THREE.MeshBasicMaterial({ color: 0xffe600, wireframe: true });
+      const gem = new THREE.Mesh(gemGeo, gemMat);
+      
+      const angle = Math.random() * Math.PI * 2;
+      const r = Math.random() * (tunnelRadius - 1.2);
+      gem.position.set(Math.cos(angle) * r, Math.sin(angle) * r, zPos);
+      
+      scene.add(gem);
+      gems.push(gem);
+    }
+
+    function removeObject(obj, array, index) {
+      scene.remove(obj);
+      obj.traverse((child) => {
         if (child.geometry) child.geometry.dispose();
         if (child.material) child.material.dispose();
       });
-      obstacles.splice(index, 1);
+      array.splice(index, 1);
     }
 
-    function resetObstacles() {
-      for (let i = obstacles.length - 1; i >= 0; i--) {
-        removeObstacle(obstacles[i], i);
-      }
+    function resetGameObjects() {
+      for (let i = obstacles.length - 1; i >= 0; i--) removeObject(obstacles[i], obstacles, i);
+      for (let i = gems.length - 1; i >= 0; i--) removeObject(gems[i], gems, i);
+      
+      obstacles = [];
+      gems = [];
       for (let i = 1; i <= 8; i++) {
         spawnObstacle(-i * 12);
       }
@@ -392,9 +461,11 @@
 
     function startGame() {
       if (gameState === 'PLAYING') return;
+      sfx.init();
       gameState = 'PLAYING';
       score = 0;
-      speed = baseSpeed;
+      currentBaseSpeed = initialSpeed;
+      speed = initialSpeed;
       combo = 1;
       player.position.set(0, 0, 0);
       targetX = 0;
@@ -402,12 +473,13 @@
       scoreEl.innerText = '0';
       multiplierEl.innerText = '1x MULTIPLIER';
       overlay.classList.add('hidden');
-      resetObstacles();
+      resetGameObjects();
     }
 
     function gameOver() {
       gameState = 'GAMEOVER';
       sfx.playCrash();
+      cameraShake = 0.5;
 
       if (score > highScore) {
         highScore = Math.floor(score);
@@ -415,9 +487,9 @@
         highScoreEl.innerText = highScore;
       }
 
-      titleEl.innerText = "GAME OVER";
-      subtitleEl.innerHTML = `SCORE: <b>${Math.floor(score)}</b><br>BEST: <b>${highScore}</b>`;
-      startBtn.innerText = "TAP TO REPLAY";
+      titleEl.innerText = "OYUN BİTTİ";
+      subtitleEl.innerHTML = `SKOR: <b>${Math.floor(score)}</b><br>REKOR: <b>${highScore}</b>`;
+      startBtn.innerText = "TEKRAR OYNA";
       overlay.classList.remove('hidden');
     }
 
@@ -425,42 +497,81 @@
       requestAnimationFrame(animate);
 
       if (gameState === 'PLAYING') {
-        const targetScale = isHolding ? 0.5 : 1.0;
-        player.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.15);
-        speed = isHolding ? boostSpeed : baseSpeed;
+        // --- ZAMANLA TATLI HIZLANMA ---
+        if (currentBaseSpeed < maxBaseSpeed) {
+          currentBaseSpeed += 0.00003; // Çok tatlı ve kademeli artış
+        }
+        
+        speed = isHolding ? currentBaseSpeed * boostMultiplier : currentBaseSpeed;
+        speedMeterEl.innerText = `SPEED: ${Math.floor((currentBaseSpeed / initialSpeed) * 100)}%`;
 
-        // Yumuşak Takip & NaN Koruması
+        const targetScale = isHolding ? 0.45 : 1.0;
+        player.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.15);
+
+        // Takip Hareketleri
         if (!isNaN(targetX) && !isNaN(targetY)) {
           player.position.x += (targetX - player.position.x) * 0.12;
           player.position.y += (targetY - player.position.y) * 0.12;
         }
 
-        player.rotation.z += 0.02;
-        player.rotation.x += 0.01;
+        player.rotation.z += 0.03;
+        player.rotation.x += 0.02;
 
-        camera.position.x = player.position.x * 0.3;
-        camera.position.y = player.position.y * 0.3;
+        // Kamera Takibi ve Sarsıntı
+        camera.position.x = player.position.x * 0.35 + (Math.random() - 0.5) * cameraShake;
+        camera.position.y = player.position.y * 0.35 + (Math.random() - 0.5) * cameraShake;
+        if (cameraShake > 0) cameraShake *= 0.85;
 
-        score += speed * 0.8 * combo;
+        // Skor Hesaplama
+        score += speed * 1.2 * combo;
         scoreEl.innerText = Math.floor(score);
 
-        tunnelRings.forEach(ring => {
+        // --- DINAMIK RENK DEĞİŞİMİ (CANLI NEON) ---
+        hueOffset += 0.002;
+        tunnelRings.forEach((ring, idx) => {
           ring.position.z += speed;
           ring.rotation.z += 0.003;
+          
+          const ringHue = (hueOffset + idx * 0.02) % 1;
+          ring.material.color.setHSL(ringHue, 0.9, 0.5);
+
           if (ring.position.z > 5) {
             ring.position.z -= 100;
           }
         });
 
+        // Parçacık Hareketi
         const positions = particles.geometry.attributes.position.array;
         for (let i = 2; i < positions.length; i += 3) {
-          positions[i] += speed * 1.5;
+          positions[i] += speed * 1.8;
           if (positions[i] > 5) {
             positions[i] = -100;
           }
         }
         particles.geometry.attributes.position.needsUpdate = true;
 
+        // --- ALTIN KÜRE (GEM) KONTROLÜ ---
+        for (let i = gems.length - 1; i >= 0; i--) {
+          const gem = gems[i];
+          gem.position.z += speed;
+          gem.rotation.y += 0.04;
+
+          const dist = player.position.distanceTo(gem.position);
+          if (dist < 0.6 + (0.35 * player.scale.x)) {
+            // Küre Toplandı! ("Tung Tung")
+            sfx.playTung(750);
+            score += 150 * combo;
+            cameraShake = 0.12;
+            removeObject(gem, gems, i);
+            continue;
+          }
+
+          if (gem.position.z > 5) {
+            removeObject(gem, gems, i);
+          }
+        }
+
+        // --- ENGEL & ÇARPIŞMA KONTROLÜ ---
         for (let i = obstacles.length - 1; i >= 0; i--) {
           const obs = obstacles[i];
           obs.position.z += speed;
@@ -475,17 +586,17 @@
             let isHit = false;
 
             if (obs.userData.type === 'pillar') {
-              if (dist < 1.0 + pRadius) isHit = true;
+              if (dist < 0.95 + pRadius) isHit = true;
             } else if (obs.userData.type === 'bar') {
               const rot = obs.rotation.z;
               const localX = dx * Math.cos(-rot) - dy * Math.sin(-rot);
               const localY = dx * Math.sin(-rot) + dy * Math.cos(-rot);
 
-              if (Math.abs(localX) < (tunnelRadius * 0.9 + pRadius) && Math.abs(localY) < (0.25 + pRadius)) {
+              if (Math.abs(localX) < (tunnelRadius * 0.88 + pRadius) && Math.abs(localY) < (0.22 + pRadius)) {
                 isHit = true;
               }
             } else if (obs.userData.type === 'ring') {
-              if (dist > 0.8 - pRadius) {
+              if (dist > 0.85 - pRadius) {
                 let angle = Math.atan2(dy, dx) - obs.rotation.z;
                 angle = angle % (Math.PI * 2);
                 if (angle < 0) angle += Math.PI * 2;
@@ -506,13 +617,13 @@
             }
           }
 
-          // Bellek Temizliği Yaparak Silme
           if (obs.position.z > 5) {
-            removeObstacle(obs, i);
+            removeObject(obs, obstacles, i);
             spawnObstacle(-90);
           }
         }
       } else {
+        // Menü Döngüsü
         tunnelRings.forEach(ring => {
           ring.position.z += 0.03;
           ring.rotation.z += 0.002;
