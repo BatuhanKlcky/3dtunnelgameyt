@@ -157,7 +157,7 @@
     <p class="subtitle" id="subtitle">Drag/Move to Steer.<br>Hold Click/Touch to Shrink & Boost!</p>
     <button class="start-btn" id="start-btn">TAP TO PLAY</button>
     <div class="instructions">
-      <span class="tag">⚡ 60 FPS</span>
+      <span class="tag">⚡ Smooth Speed</span>
       <span class="tag">🎯 1-Tap Control</span>
       <span class="tag">🚀 Instant Replay</span>
     </div>
@@ -225,9 +225,12 @@
     let gameState = 'MENU'; // MENU, PLAYING, GAMEOVER
     let score = 0;
     let highScore = localStorage.getItem('tunnel_high_score') || 0;
-    let speed = 0.8;
-    let baseSpeed = 0.8;
-    let boostSpeed = 1.6;
+    
+    // YAVAŞLATILMIŞ HIZ AYARLARI
+    let speed = 0.18;
+    let baseSpeed = 0.18;
+    let boostSpeed = 0.35;
+    
     let targetX = 0, targetY = 0;
     let tunnelRadius = 3.5;
     let combo = 1;
@@ -348,7 +351,7 @@
         const barMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
         const bar = new THREE.Mesh(barGeo, barMat);
         group.add(bar);
-        group.userData = { rotSpeed: 0.03, type: 'bar' };
+        group.userData = { rotSpeed: 0.012, type: 'bar' };
       } else if (type === 1) {
         // Center Pillar with Gap
         const pillarGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.4, 16);
@@ -362,7 +365,7 @@
         const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, side: THREE.DoubleSide });
         const ring = new THREE.Mesh(ringGeo, ringMat);
         group.add(ring);
-        group.userData = { rotSpeed: -0.04, type: 'ring' };
+        group.userData = { rotSpeed: -0.015, type: 'ring' };
       }
 
       group.position.set(0, 0, zPos);
@@ -421,21 +424,21 @@
         // Smooth Movement
         player.position.x += (targetX - player.position.x) * 0.12;
         player.position.y += (targetY - player.position.y) * 0.12;
-        player.rotation.z += 0.05;
-        player.rotation.x += 0.03;
+        player.rotation.z += 0.02;
+        player.rotation.x += 0.01;
 
         // Camera Follow
         camera.position.x = player.position.x * 0.3;
         camera.position.y = player.position.y * 0.3;
 
         // Score update
-        score += speed * 0.2 * combo;
+        score += speed * 0.8 * combo;
         scoreEl.innerText = Math.floor(score);
 
         // Move Tunnel Rings (Looping)
         tunnelRings.forEach(ring => {
           ring.position.z += speed;
-          ring.rotation.z += 0.01;
+          ring.rotation.z += 0.003;
           if (ring.position.z > 5) {
             ring.position.z -= 100;
           }
@@ -490,8 +493,8 @@
       } else {
         // Idle Animation on Menu
         tunnelRings.forEach(ring => {
-          ring.position.z += 0.1;
-          ring.rotation.z += 0.005;
+          ring.position.z += 0.03;
+          ring.rotation.z += 0.002;
           if (ring.position.z > 5) ring.position.z -= 100;
         });
       }
