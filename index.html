@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>3D Tunnel Pulse</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #050508;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    #game-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+    #ui-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+    }
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      color: #fff;
+      font-weight: 700;
+      text-shadow: 0 0 10px rgba(0,255,200,0.8);
+    }
+    .score-box {
+      font-size: 28px;
+      letter-spacing: 1px;
+    }
+    .high-score-box {
+      font-size: 16px;
+      opacity: 0.8;
+      text-align: right;
+    }
+    .multiplier {
+      font-size: 18px;
+      color: #ff007f;
+      text-shadow: 0 0 10px rgba(255,0,127,0.8);
+      margin-top: 4px;
+    }
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(5, 5, 8, 0.75);
+      backdrop-filter: blur(8px);
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      text-align: center;
+      pointer-events: auto;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+    }
+    #overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    h1 {
+      font-size: 42px;
+      margin-bottom: 10px;
+      background: linear-gradient(45deg, #00f2fe, #4facfe, #ff007f);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+    p.subtitle {
+      font-size: 16px;
+      color: #a0a0c0;
+      margin-bottom: 30px;
+      max-width: 300px;
+      line-height: 1.4;
+    }
+    .start-btn {
+      padding: 14px 36px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #050508;
+      background: #00ffcc;
+      border: none;
+      border-radius: 30px;
+      box-shadow: 0 0 20px rgba(0, 255, 204, 0.6);
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); box-shadow: 0 0 20px rgba(0, 255, 204, 0.6); }
+      50% { transform: scale(1.05); box-shadow: 0 0 35px rgba(0, 255, 204, 0.9); }
+      100% { transform: scale(1); box-shadow: 0 0 20px rgba(0, 255, 204, 0.6); }
+    }
+    .instructions {
+      margin-top: 25px;
+      font-size: 13px;
+      color: #8080a0;
+      display: flex;
+      gap: 15px;
+    }
+    .tag {
+      background: rgba(255,255,255,0.1);
+      padding: 4px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+  </style>
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+  <div id="game-container"></div>
+
+  <div id="ui-container">
+    <div class="hud">
+      <div>
+        <div class="score-box" id="score">0</div>
+        <div class="multiplier" id="multiplier">1x MULTIPLIER</div>
+      </div>
+      <div class="high-score-box">
+        BEST: <span id="high-score">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="overlay">
+    <h1 id="title">TUNNEL PULSE</h1>
+    <p class="subtitle" id="subtitle">Drag/Move to Steer.<br>Hold Click/Touch to Shrink & Boost!</p>
+    <button class="start-btn" id="start-btn">TAP TO PLAY</button>
+    <div class="instructions">
+      <span class="tag">⚡ 60 FPS</span>
+      <span class="tag">🎯 1-Tap Control</span>
+      <span class="tag">🚀 Instant Replay</span>
+    </div>
+  </div>
+
+  <script>
+    // --- Web Audio Synthesizer for SFX ---
+    class SoundFx {
+      constructor() {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      playBoost() {
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(300, this.ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.15);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.15);
+      }
+      playPass() {
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.1);
+      }
+      playCrash() {
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.3);
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.3);
+      }
+    }
+
+    const sfx = new SoundFx();
+
+    // --- Game Variables ---
+    let scene, camera, renderer;
+    let player, playerLight;
+    let tunnelRings = [];
+    let obstacles = [];
+    let particles;
+    let isHolding = false;
+    let gameState = 'MENU'; // MENU, PLAYING, GAMEOVER
+    let score = 0;
+    let highScore = localStorage.getItem('tunnel_high_score') || 0;
+    let speed = 0.8;
+    let baseSpeed = 0.8;
+    let boostSpeed = 1.6;
+    let targetX = 0, targetY = 0;
+    let tunnelRadius = 3.5;
+    let combo = 1;
+
+    const scoreEl = document.getElementById('score');
+    const highScoreEl = document.getElementById('high-score');
+    const multiplierEl = document.getElementById('multiplier');
+    const overlay = document.getElementById('overlay');
+    const titleEl = document.getElementById('title');
+    const subtitleEl = document.getElementById('subtitle');
+    const startBtn = document.getElementById('start-btn');
+
+    highScoreEl.innerText = highScore;
+
+    function init() {
+      const container = document.getElementById('game-container');
+
+      // 1. Scene & Camera
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x050508, 0.04);
+
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+      camera.position.set(0, 0, 5);
+
+      // 2. Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      // 3. Player
+      const playerGeo = new THREE.SphereGeometry(0.35, 16, 16);
+      const playerMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true });
+      player = new THREE.Mesh(playerGeo, playerMat);
+      
+      playerLight = new THREE.PointLight(0x00ffcc, 3, 12);
+      player.add(playerLight);
+      scene.add(player);
+
+      // 4. Tunnel Mesh (Procedural Wireframe Rings)
+      createTunnel();
+
+      // 5. Starfield / Speed Particles
+      createParticles();
+
+      // Event Listeners
+      window.addEventListener('resize', onWindowResize);
+      
+      const handlePointerDown = (e) => {
+        if (gameState === 'MENU' || gameState === 'GAMEOVER') {
+          startGame();
+          return;
+        }
+        isHolding = true;
+        sfx.playBoost();
+      };
+
+      const handlePointerUp = () => {
+        isHolding = false;
+      };
+
+      const handlePointerMove = (e) => {
+        let x = (e.clientX || (e.touches && e.touches[0].clientX)) / window.innerWidth * 2 - 1;
+        let y = -((e.clientY || (e.touches && e.touches[0].clientY)) / window.innerHeight * 2 - 1);
+        targetX = x * (tunnelRadius - 0.8);
+        targetY = y * (tunnelRadius - 0.8);
+      };
+
+      window.addEventListener('pointerdown', handlePointerDown);
+      window.addEventListener('pointerup', handlePointerUp);
+      window.addEventListener('pointermove', handlePointerMove);
+
+      overlay.addEventListener('click', startGame);
+
+      // Start Animation Loop
+      animate();
+    }
+
+    function createTunnel() {
+      const ringGeo = new THREE.TorusGeometry(tunnelRadius, 0.03, 8, 24);
+      for (let i = 0; i < 40; i++) {
+        const ringMat = new THREE.MeshBasicMaterial({ 
+          color: i % 2 === 0 ? 0x00f2fe : 0xff007f, 
+          transparent: true, 
+          opacity: 0.4 
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.position.z = -i * 2.5;
+        scene.add(ring);
+        tunnelRings.push(ring);
+      }
+    }
+
+    function createParticles() {
+      const pGeo = new THREE.BufferGeometry();
+      const pCount = 300;
+      const posArray = new Float32Array(pCount * 3);
+
+      for (let i = 0; i < pCount * 3; i += 3) {
+        posArray[i] = (Math.random() - 0.5) * 12;
+        posArray[i + 1] = (Math.random() - 0.5) * 12;
+        posArray[i + 2] = -Math.random() * 100;
+      }
+
+      pGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+      const pMat = new THREE.PointsMaterial({ size: 0.05, color: 0xffffff });
+      particles = new THREE.Points(pGeo, pMat);
+      scene.add(particles);
+    }
+
+    function spawnObstacle(zPos) {
+      const group = new THREE.Group();
+      const type = Math.floor(Math.random() * 3);
+
+      if (type === 0) {
+        // Rotating Bar
+        const barGeo = new THREE.BoxGeometry(tunnelRadius * 1.8, 0.4, 0.4);
+        const barMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
+        const bar = new THREE.Mesh(barGeo, barMat);
+        group.add(bar);
+        group.userData = { rotSpeed: 0.03, type: 'bar' };
+      } else if (type === 1) {
+        // Center Pillar with Gap
+        const pillarGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.4, 16);
+        const pillarMat = new THREE.MeshBasicMaterial({ color: 0x7f00ff });
+        const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+        group.add(pillar);
+        group.userData = { rotSpeed: 0, type: 'pillar' };
+      } else {
+        // Ring Segment
+        const ringGeo = new THREE.RingGeometry(0.8, tunnelRadius, 16, 1, 0, Math.PI * 1.3);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, side: THREE.DoubleSide });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        group.add(ring);
+        group.userData = { rotSpeed: -0.04, type: 'ring' };
+      }
+
+      group.position.set(0, 0, zPos);
+      scene.add(group);
+      obstacles.push(group);
+    }
+
+    function resetObstacles() {
+      obstacles.forEach(obs => scene.remove(obs));
+      obstacles = [];
+      for (let i = 1; i <= 8; i++) {
+        spawnObstacle(-i * 12);
+      }
+    }
+
+    function startGame() {
+      if (gameState === 'PLAYING') return;
+      gameState = 'PLAYING';
+      score = 0;
+      speed = baseSpeed;
+      combo = 1;
+      player.position.set(0, 0, 0);
+      targetX = 0;
+      targetY = 0;
+      scoreEl.innerText = '0';
+      multiplierEl.innerText = '1x MULTIPLIER';
+      overlay.classList.add('hidden');
+      resetObstacles();
+    }
+
+    function gameOver() {
+      gameState = 'GAMEOVER';
+      sfx.playCrash();
+
+      if (score > highScore) {
+        highScore = Math.floor(score);
+        localStorage.setItem('tunnel_high_score', highScore);
+        highScoreEl.innerText = highScore;
+      }
+
+      titleEl.innerText = "GAME OVER";
+      subtitleEl.innerHTML = `SCORE: <b>${Math.floor(score)}</b><br>BEST: <b>${highScore}</b>`;
+      startBtn.innerText = "TAP TO REPLAY";
+      overlay.classList.remove('hidden');
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      if (gameState === 'PLAYING') {
+        // Handle Holding (Boost & Shrink)
+        const targetScale = isHolding ? 0.5 : 1.0;
+        player.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.15);
+        speed = isHolding ? boostSpeed : baseSpeed;
+
+        // Smooth Movement
+        player.position.x += (targetX - player.position.x) * 0.12;
+        player.position.y += (targetY - player.position.y) * 0.12;
+        player.rotation.z += 0.05;
+        player.rotation.x += 0.03;
+
+        // Camera Follow
+        camera.position.x = player.position.x * 0.3;
+        camera.position.y = player.position.y * 0.3;
+
+        // Score update
+        score += speed * 0.2 * combo;
+        scoreEl.innerText = Math.floor(score);
+
+        // Move Tunnel Rings (Looping)
+        tunnelRings.forEach(ring => {
+          ring.position.z += speed;
+          ring.rotation.z += 0.01;
+          if (ring.position.z > 5) {
+            ring.position.z -= 100;
+          }
+        });
+
+        // Move Particles
+        const positions = particles.geometry.attributes.position.array;
+        for (let i = 2; i < positions.length; i += 3) {
+          positions[i] += speed * 1.5;
+          if (positions[i] > 5) {
+            positions[i] = -100;
+          }
+        }
+        particles.geometry.attributes.position.needsUpdate = true;
+
+        // Move & Check Obstacles
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          const obs = obstacles[i];
+          obs.position.z += speed;
+          obs.rotation.z += obs.userData.rotSpeed;
+
+          // Collision Check
+          const pRadius = 0.35 * player.scale.x;
+          if (Math.abs(obs.position.z - player.position.z) < 0.4) {
+            const dist = player.position.distanceTo(obs.position);
+            
+            // Simplified hit check based on type
+            if (obs.userData.type === 'pillar' && dist < 1.2 + pRadius) {
+              gameOver();
+            } else if (obs.userData.type === 'bar' && dist < 1.6 && Math.abs(player.position.y) < 0.5) {
+              gameOver();
+            } else if (obs.userData.type === 'ring' && dist > 1.2) {
+              gameOver();
+            } else {
+              // Pass sound
+              if (!obs.userData.passed) {
+                obs.userData.passed = true;
+                combo = Math.min(combo + 1, 8);
+                multiplierEl.innerText = `${combo}x MULTIPLIER`;
+                sfx.playPass();
+              }
+            }
+          }
+
+          // Recycle Obstacle
+          if (obs.position.z > 5) {
+            scene.remove(obs);
+            obstacles.splice(i, 1);
+            spawnObstacle(-90);
+          }
+        }
+      } else {
+        // Idle Animation on Menu
+        tunnelRings.forEach(ring => {
+          ring.position.z += 0.1;
+          ring.rotation.z += 0.005;
+          if (ring.position.z > 5) ring.position.z -= 100;
+        });
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
