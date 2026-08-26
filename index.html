@@ -133,7 +133,6 @@
       border: 1px solid rgba(255,255,255,0.15);
     }
   </style>
-  <!-- Three.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -157,14 +156,13 @@
     <p class="subtitle" id="subtitle">Drag/Move to Steer.<br>Hold Click/Touch to Shrink & Boost!</p>
     <button class="start-btn" id="start-btn">TAP TO PLAY</button>
     <div class="instructions">
-      <span class="tag">⚡ Fixed Hitboxes</span>
+      <span class="tag">⚡ Bug Fixed</span>
       <span class="tag">🎯 1-Tap Control</span>
       <span class="tag">🚀 Instant Replay</span>
     </div>
   </div>
 
   <script>
-    // --- Web Audio Synthesizer for SFX ---
     class SoundFx {
       constructor() {
         this.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -215,7 +213,6 @@
 
     const sfx = new SoundFx();
 
-    // --- Game Variables ---
     let scene, camera, renderer;
     let player, playerLight;
     let tunnelRings = [];
@@ -271,7 +268,7 @@
 
       window.addEventListener('resize', onWindowResize);
       
-      const handlePointerDown = (e) => {
+      const handlePointerDown = () => {
         if (gameState === 'MENU' || gameState === 'GAMEOVER') {
           startGame();
           return;
@@ -284,9 +281,23 @@
         isHolding = false;
       };
 
+      // NaN Oluşmasını Engeller Hareket Kontrolü
       const handlePointerMove = (e) => {
-        let x = (e.clientX || (e.touches && e.touches[0].clientX)) / window.innerWidth * 2 - 1;
-        let y = -((e.clientY || (e.touches && e.touches[0].clientY)) / window.innerHeight * 2 - 1);
+        let clientX = e.clientX;
+        let clientY = e.clientY;
+
+        if (clientX === undefined && e.touches && e.touches.length > 0) {
+          clientX = e.touches[0].clientX;
+          clientY = e.touches[0].clientY;
+        }
+
+        if (clientX === undefined || clientY === undefined) return;
+
+        let x = (clientX / window.innerWidth) * 2 - 1;
+        let y = -((clientY / window.innerHeight) * 2 - 1);
+
+        if (isNaN(x) || isNaN(y)) return;
+
         targetX = x * (tunnelRadius - 0.8);
         targetY = y * (tunnelRadius - 0.8);
       };
@@ -337,21 +348,18 @@
       const type = Math.floor(Math.random() * 3);
 
       if (type === 0) {
-        // Döner Çubuk
         const barGeo = new THREE.BoxGeometry(tunnelRadius * 1.8, 0.4, 0.4);
         const barMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
         const bar = new THREE.Mesh(barGeo, barMat);
         group.add(bar);
         group.userData = { rotSpeed: 0.012, type: 'bar' };
       } else if (type === 1) {
-        // Orta Sütun
         const pillarGeo = new THREE.CylinderGeometry(1.0, 1.0, 0.4, 16);
         const pillarMat = new THREE.MeshBasicMaterial({ color: 0x7f00ff });
         const pillar = new THREE.Mesh(pillarGeo, pillarMat);
         group.add(pillar);
         group.userData = { rotSpeed: 0, type: 'pillar' };
       } else {
-        // Açılı Halka Parçası (Boşluklu)
         const ringGeo = new THREE.RingGeometry(0.8, tunnelRadius, 16, 1, 0, Math.PI * 1.3);
         const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, side: THREE.DoubleSide });
         const ring = new THREE.Mesh(ringGeo, ringMat);
@@ -364,9 +372,19 @@
       obstacles.push(group);
     }
 
+    function removeObstacle(obs, index) {
+      scene.remove(obs);
+      obs.traverse((child) => {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) child.material.dispose();
+      });
+      obstacles.splice(index, 1);
+    }
+
     function resetObstacles() {
-      obstacles.forEach(obs => scene.remove(obs));
-      obstacles = [];
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        removeObstacle(obstacles[i], i);
+      }
       for (let i = 1; i <= 8; i++) {
         spawnObstacle(-i * 12);
       }
@@ -411,8 +429,12 @@
         player.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.15);
         speed = isHolding ? boostSpeed : baseSpeed;
 
-        player.position.x += (targetX - player.position.x) * 0.12;
-        player.position.y += (targetY - player.position.y) * 0.12;
+        // Yumuşak Takip & NaN Koruması
+        if (!isNaN(targetX) && !isNaN(targetY)) {
+          player.position.x += (targetX - player.position.x) * 0.12;
+          player.position.y += (targetY - player.position.y) * 0.12;
+        }
+
         player.rotation.z += 0.02;
         player.rotation.x += 0.01;
 
@@ -439,7 +461,6 @@
         }
         particles.geometry.attributes.position.needsUpdate = true;
 
-        // --- HASSAS ÇARPIŞMA KONTROLÜ (FIXED HITBOXES) ---
         for (let i = obstacles.length - 1; i >= 0; i--) {
           const obs = obstacles[i];
           obs.position.z += speed;
@@ -447,7 +468,6 @@
 
           const pRadius = 0.35 * player.scale.x;
 
-          // Z ekseninde oyuncu hizasına gelindiğinde kontrol et
           if (Math.abs(obs.position.z - player.position.z) < 0.4) {
             const dx = player.position.x - obs.position.x;
             const dy = player.position.y - obs.position.y;
@@ -455,10 +475,8 @@
             let isHit = false;
 
             if (obs.userData.type === 'pillar') {
-              // Orta silindire temas
               if (dist < 1.0 + pRadius) isHit = true;
             } else if (obs.userData.type === 'bar') {
-              // Döner çubuğun açısını hesaba katarak lokal koordinata dönüştür
               const rot = obs.rotation.z;
               const localX = dx * Math.cos(-rot) - dy * Math.sin(-rot);
               const localY = dx * Math.sin(-rot) + dy * Math.cos(-rot);
@@ -467,13 +485,11 @@
                 isHit = true;
               }
             } else if (obs.userData.type === 'ring') {
-              // Halka boşluğunu açısal olarak doğrula
               if (dist > 0.8 - pRadius) {
                 let angle = Math.atan2(dy, dx) - obs.rotation.z;
                 angle = angle % (Math.PI * 2);
                 if (angle < 0) angle += Math.PI * 2;
 
-                // 0 ile 1.3*PI arası dolu alan; kalan açı boş geçiş alanıdır
                 if (angle >= 0 && angle <= Math.PI * 1.3) {
                   isHit = true;
                 }
@@ -490,9 +506,9 @@
             }
           }
 
+          // Bellek Temizliği Yaparak Silme
           if (obs.position.z > 5) {
-            scene.remove(obs);
-            obstacles.splice(i, 1);
+            removeObstacle(obs, i);
             spawnObstacle(-90);
           }
         }
