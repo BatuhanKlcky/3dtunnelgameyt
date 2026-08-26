@@ -157,7 +157,7 @@
     <p class="subtitle" id="subtitle">Drag/Move to Steer.<br>Hold Click/Touch to Shrink & Boost!</p>
     <button class="start-btn" id="start-btn">TAP TO PLAY</button>
     <div class="instructions">
-      <span class="tag">⚡ Smooth Speed</span>
+      <span class="tag">⚡ Fixed Hitboxes</span>
       <span class="tag">🎯 1-Tap Control</span>
       <span class="tag">🚀 Instant Replay</span>
     </div>
@@ -222,11 +222,10 @@
     let obstacles = [];
     let particles;
     let isHolding = false;
-    let gameState = 'MENU'; // MENU, PLAYING, GAMEOVER
+    let gameState = 'MENU';
     let score = 0;
     let highScore = localStorage.getItem('tunnel_high_score') || 0;
     
-    // YAVAŞLATILMIŞ HIZ AYARLARI
     let speed = 0.18;
     let baseSpeed = 0.18;
     let boostSpeed = 0.35;
@@ -248,20 +247,17 @@
     function init() {
       const container = document.getElementById('game-container');
 
-      // 1. Scene & Camera
       scene = new THREE.Scene();
       scene.fog = new THREE.FogExp2(0x050508, 0.04);
 
       camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
       camera.position.set(0, 0, 5);
 
-      // 2. Renderer
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       container.appendChild(renderer.domElement);
 
-      // 3. Player
       const playerGeo = new THREE.SphereGeometry(0.35, 16, 16);
       const playerMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true });
       player = new THREE.Mesh(playerGeo, playerMat);
@@ -270,13 +266,9 @@
       player.add(playerLight);
       scene.add(player);
 
-      // 4. Tunnel Mesh (Procedural Wireframe Rings)
       createTunnel();
-
-      // 5. Starfield / Speed Particles
       createParticles();
 
-      // Event Listeners
       window.addEventListener('resize', onWindowResize);
       
       const handlePointerDown = (e) => {
@@ -305,7 +297,6 @@
 
       overlay.addEventListener('click', startGame);
 
-      // Start Animation Loop
       animate();
     }
 
@@ -346,21 +337,21 @@
       const type = Math.floor(Math.random() * 3);
 
       if (type === 0) {
-        // Rotating Bar
+        // Döner Çubuk
         const barGeo = new THREE.BoxGeometry(tunnelRadius * 1.8, 0.4, 0.4);
         const barMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
         const bar = new THREE.Mesh(barGeo, barMat);
         group.add(bar);
         group.userData = { rotSpeed: 0.012, type: 'bar' };
       } else if (type === 1) {
-        // Center Pillar with Gap
-        const pillarGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.4, 16);
+        // Orta Sütun
+        const pillarGeo = new THREE.CylinderGeometry(1.0, 1.0, 0.4, 16);
         const pillarMat = new THREE.MeshBasicMaterial({ color: 0x7f00ff });
         const pillar = new THREE.Mesh(pillarGeo, pillarMat);
         group.add(pillar);
         group.userData = { rotSpeed: 0, type: 'pillar' };
       } else {
-        // Ring Segment
+        // Açılı Halka Parçası (Boşluklu)
         const ringGeo = new THREE.RingGeometry(0.8, tunnelRadius, 16, 1, 0, Math.PI * 1.3);
         const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, side: THREE.DoubleSide });
         const ring = new THREE.Mesh(ringGeo, ringMat);
@@ -416,26 +407,21 @@
       requestAnimationFrame(animate);
 
       if (gameState === 'PLAYING') {
-        // Handle Holding (Boost & Shrink)
         const targetScale = isHolding ? 0.5 : 1.0;
         player.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.15);
         speed = isHolding ? boostSpeed : baseSpeed;
 
-        // Smooth Movement
         player.position.x += (targetX - player.position.x) * 0.12;
         player.position.y += (targetY - player.position.y) * 0.12;
         player.rotation.z += 0.02;
         player.rotation.x += 0.01;
 
-        // Camera Follow
         camera.position.x = player.position.x * 0.3;
         camera.position.y = player.position.y * 0.3;
 
-        // Score update
         score += speed * 0.8 * combo;
         scoreEl.innerText = Math.floor(score);
 
-        // Move Tunnel Rings (Looping)
         tunnelRings.forEach(ring => {
           ring.position.z += speed;
           ring.rotation.z += 0.003;
@@ -444,7 +430,6 @@
           }
         });
 
-        // Move Particles
         const positions = particles.geometry.attributes.position.array;
         for (let i = 2; i < positions.length; i += 3) {
           positions[i] += speed * 1.5;
@@ -454,36 +439,57 @@
         }
         particles.geometry.attributes.position.needsUpdate = true;
 
-        // Move & Check Obstacles
+        // --- HASSAS ÇARPIŞMA KONTROLÜ (FIXED HITBOXES) ---
         for (let i = obstacles.length - 1; i >= 0; i--) {
           const obs = obstacles[i];
           obs.position.z += speed;
           obs.rotation.z += obs.userData.rotSpeed;
 
-          // Collision Check
           const pRadius = 0.35 * player.scale.x;
+
+          // Z ekseninde oyuncu hizasına gelindiğinde kontrol et
           if (Math.abs(obs.position.z - player.position.z) < 0.4) {
-            const dist = player.position.distanceTo(obs.position);
-            
-            // Simplified hit check based on type
-            if (obs.userData.type === 'pillar' && dist < 1.2 + pRadius) {
-              gameOver();
-            } else if (obs.userData.type === 'bar' && dist < 1.6 && Math.abs(player.position.y) < 0.5) {
-              gameOver();
-            } else if (obs.userData.type === 'ring' && dist > 1.2) {
-              gameOver();
-            } else {
-              // Pass sound
-              if (!obs.userData.passed) {
-                obs.userData.passed = true;
-                combo = Math.min(combo + 1, 8);
-                multiplierEl.innerText = `${combo}x MULTIPLIER`;
-                sfx.playPass();
+            const dx = player.position.x - obs.position.x;
+            const dy = player.position.y - obs.position.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            let isHit = false;
+
+            if (obs.userData.type === 'pillar') {
+              // Orta silindire temas
+              if (dist < 1.0 + pRadius) isHit = true;
+            } else if (obs.userData.type === 'bar') {
+              // Döner çubuğun açısını hesaba katarak lokal koordinata dönüştür
+              const rot = obs.rotation.z;
+              const localX = dx * Math.cos(-rot) - dy * Math.sin(-rot);
+              const localY = dx * Math.sin(-rot) + dy * Math.cos(-rot);
+
+              if (Math.abs(localX) < (tunnelRadius * 0.9 + pRadius) && Math.abs(localY) < (0.25 + pRadius)) {
+                isHit = true;
               }
+            } else if (obs.userData.type === 'ring') {
+              // Halka boşluğunu açısal olarak doğrula
+              if (dist > 0.8 - pRadius) {
+                let angle = Math.atan2(dy, dx) - obs.rotation.z;
+                angle = angle % (Math.PI * 2);
+                if (angle < 0) angle += Math.PI * 2;
+
+                // 0 ile 1.3*PI arası dolu alan; kalan açı boş geçiş alanıdır
+                if (angle >= 0 && angle <= Math.PI * 1.3) {
+                  isHit = true;
+                }
+              }
+            }
+
+            if (isHit) {
+              gameOver();
+            } else if (!obs.userData.passed) {
+              obs.userData.passed = true;
+              combo = Math.min(combo + 1, 8);
+              multiplierEl.innerText = `${combo}x MULTIPLIER`;
+              sfx.playPass();
             }
           }
 
-          // Recycle Obstacle
           if (obs.position.z > 5) {
             scene.remove(obs);
             obstacles.splice(i, 1);
@@ -491,7 +497,6 @@
           }
         }
       } else {
-        // Idle Animation on Menu
         tunnelRings.forEach(ring => {
           ring.position.z += 0.03;
           ring.rotation.z += 0.002;
