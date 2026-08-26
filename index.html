@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>3D Tunnel Pulse - Rush Edition</title>
+  <title>3D Tunnel Rush - Market Edition</title>
   <style>
     * {
       box-sizing: border-box;
@@ -49,35 +49,20 @@
       font-weight: 700;
       text-shadow: 0 0 10px rgba(0,255,200,0.8);
     }
-    .score-box {
-      font-size: 32px;
-      letter-spacing: 1px;
-    }
-    .high-score-box {
-      font-size: 16px;
-      opacity: 0.8;
-      text-align: right;
-    }
-    .multiplier {
-      font-size: 18px;
-      color: #ff007f;
-      text-shadow: 0 0 10px rgba(255,0,127,0.8);
-      margin-top: 4px;
-    }
-    .speed-meter {
-      font-size: 12px;
-      color: #00ffcc;
-      margin-top: 2px;
-      opacity: 0.8;
-    }
-    #overlay {
+    .score-box { font-size: 32px; letter-spacing: 1px; }
+    .high-score-box { font-size: 16px; opacity: 0.8; text-align: right; }
+    .gem-count-hud { color: #ffe600; font-size: 20px; margin-top: 4px; }
+    .multiplier { font-size: 18px; color: #ff007f; text-shadow: 0 0 10px rgba(255,0,127,0.8); margin-top: 2px; }
+    .speed-meter { font-size: 12px; color: #00ffcc; opacity: 0.8; }
+    
+    .overlay-screen {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(5, 5, 8, 0.8);
-      backdrop-filter: blur(10px);
+      background: rgba(5, 5, 8, 0.85);
+      backdrop-filter: blur(12px);
       z-index: 20;
       display: flex;
       flex-direction: column;
@@ -86,57 +71,85 @@
       color: #fff;
       text-align: center;
       pointer-events: auto;
-      cursor: pointer;
     }
-    #overlay.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
+    .hidden { opacity: 0; pointer-events: none !important; }
+
     h1 {
-      font-size: 42px;
-      margin-bottom: 10px;
+      font-size: 40px;
+      margin-bottom: 8px;
       background: linear-gradient(45deg, #00f2fe, #ff007f, #ffe600);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       text-transform: uppercase;
-      letter-spacing: 3px;
+      letter-spacing: 2px;
     }
-    p.subtitle {
-      font-size: 15px;
-      color: #a0a0c0;
-      margin-bottom: 25px;
-      max-width: 320px;
-      line-height: 1.5;
-    }
-    .start-btn {
-      padding: 16px 40px;
-      font-size: 22px;
+    p.subtitle { font-size: 14px; color: #a0a0c0; margin-bottom: 20px; max-width: 320px; line-height: 1.4; }
+    
+    .btn-group { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; }
+    .btn {
+      padding: 14px 32px;
+      font-size: 18px;
       font-weight: bold;
-      color: #050508;
-      background: #00ffcc;
       border: none;
       border-radius: 30px;
-      box-shadow: 0 0 25px rgba(0, 255, 204, 0.8);
-      animation: pulse 1.5s infinite;
+      cursor: pointer;
+      transition: all 0.2s ease;
     }
-    @keyframes pulse {
-      0% { transform: scale(1); box-shadow: 0 0 20px rgba(0, 255, 204, 0.6); }
-      50% { transform: scale(1.06); box-shadow: 0 0 35px rgba(0, 255, 204, 1); }
-      100% { transform: scale(1); box-shadow: 0 0 20px rgba(0, 255, 204, 0.6); }
+    .start-btn {
+      color: #050508;
+      background: #00ffcc;
+      box-shadow: 0 0 20px rgba(0, 255, 204, 0.7);
     }
-    .instructions {
-      margin-top: 25px;
-      font-size: 13px;
-      color: #8080a0;
-      display: flex;
-      gap: 10px;
+    .market-btn {
+      color: #fff;
+      background: #ff007f;
+      box-shadow: 0 0 20px rgba(255, 0, 127, 0.6);
     }
-    .tag {
-      background: rgba(255,255,255,0.1);
-      padding: 6px 12px;
+    .back-btn {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      margin-top: 20px;
+    }
+
+    /* Market Modalı */
+    .market-container {
+      width: 90%;
+      max-width: 480px;
+      max-height: 80vh;
+      overflow-y: auto;
+      background: rgba(20, 20, 35, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+    }
+    .market-header { font-size: 22px; color: #ffe600; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+    .section-title { font-size: 16px; color: #00ffcc; text-align: left; margin: 15px 0 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; }
+    .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .shop-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.15);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
     }
+    .shop-card.active { border-color: #00ffcc; background: rgba(0, 255, 204, 0.15); }
+    .item-name { font-size: 14px; font-weight: bold; }
+    .item-btn {
+      font-size: 12px;
+      padding: 6px 14px;
+      border-radius: 15px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+    }
+    .buy-btn { background: #ffe600; color: #000; }
+    .equip-btn { background: #00ffcc; color: #000; }
+    .equipped-btn { background: rgba(255, 255, 255, 0.2); color: #fff; cursor: default; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -153,64 +166,65 @@
       </div>
       <div class="high-score-box">
         BEST: <span id="high-score">0</span>
+        <div class="gem-count-hud">💎 <span id="gems-hud">0</span></div>
       </div>
     </div>
   </div>
 
-  <div id="overlay">
+  <!-- ANA MENÜ / GAME OVER EKRANI -->
+  <div class="overlay-screen" id="main-overlay">
     <h1 id="title">TUNNEL RUSH</h1>
-    <p class="subtitle" id="subtitle">Parmağınla/Fareyle Yön Ver.<br><b>Basılı Tut:</b> Ufal & Hızlan!<br>Altın Küreleri Topla!</p>
-    <button class="start-btn" id="start-btn">OYNAMAĞA BAŞLA</button>
-    <div class="instructions">
-      <span class="tag">💎 Küre Topla</span>
-      <span class="tag">⚡ Zamanla Hızlanır</span>
-      <span class="tag">📱 Tam Mobil Uyum</span>
+    <p class="subtitle" id="subtitle">Ekranı Kaydırarak Yön Ver.<br><b>Basılı Tut:</b> Küçül & Hızlan!<br>Kürelere Dokunarak Topla!</p>
+    <div class="btn-group">
+      <button class="btn start-btn" id="start-btn">OYUNA BAŞLA</button>
+      <button class="btn market-btn" id="open-market-btn">MARKET 💎</button>
+    </div>
+  </div>
+
+  <!-- MARKET MODALI -->
+  <div class="overlay-screen hidden" id="market-overlay">
+    <div class="market-container">
+      <div class="market-header">
+        <span>MARKET</span>
+        <span style="font-size:16px;">💎 <span id="market-gems">0</span></span>
+      </div>
+
+      <div class="section-title">TOP KAPLAMALARI (SKINS)</div>
+      <div class="shop-grid" id="skins-grid"></div>
+
+      <div class="section-title">ALAN / TÜNEL TEMALARI</div>
+      <div class="shop-grid" id="themes-grid"></div>
+
+      <button class="btn back-btn" id="close-market-btn">KAPAT</button>
     </div>
   </div>
 
   <script>
-    // --- SES EFEKTLERİ SENTEZLEYİCİSİ (Tung Tung / Sashur) ---
+    // --- SES EFEKTLERİ SENTEZLEYİCİSİ ---
     class SoundFx {
-      constructor() {
-        this.ctx = null;
-      }
+      constructor() { this.ctx = null; }
       init() {
-        if (!this.ctx) {
-          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (this.ctx.state === 'suspended') {
-          this.ctx.resume();
-        }
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
       }
-
-      // "Sashur / Wooosh" - Küçülme / Boost Sesi
       playBoost() {
         this.init();
         const bufferSize = this.ctx.sampleRate * 0.15;
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = Math.random() * 2 - 1;
-        }
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
         const noise = this.ctx.createBufferSource();
         noise.buffer = buffer;
-
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'bandpass';
         filter.frequency.setValueAtTime(400, this.ctx.currentTime);
         filter.frequency.exponentialRampToValueAtTime(1800, this.ctx.currentTime + 0.15);
-
         const gain = this.ctx.createGain();
         gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
         gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.15);
-
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.ctx.destination);
+        noise.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
         noise.start();
       }
-
-      // "Tung!" - Küre Toplama / Geçiş Sesi
       playTung(pitch = 520) {
         this.init();
         const osc = this.ctx.createOscillator();
@@ -218,22 +232,12 @@
         osc.type = 'sine';
         osc.frequency.setValueAtTime(pitch, this.ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(pitch * 1.5, this.ctx.currentTime + 0.08);
-
         gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start();
-        osc.stop(this.ctx.currentTime + 0.12);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(); osc.stop(this.ctx.currentTime + 0.12);
       }
-
-      // "Plop/Pass" - Engel Geçme Sesi
-      playPass() {
-        this.playTung(380);
-      }
-
-      // Güm/Crash Sesi
+      playPass() { this.playTung(380); }
       playCrash() {
         this.init();
         const osc = this.ctx.createOscillator();
@@ -241,18 +245,34 @@
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(120, this.ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.35);
-
         gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
         gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.35);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start();
-        osc.stop(this.ctx.currentTime + 0.35);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(); osc.stop(this.ctx.currentTime + 0.35);
       }
     }
 
     const sfx = new SoundFx();
+
+    // --- MARKET VERİ YAPISI & EKONOMİ ---
+    let totalGems = parseInt(localStorage.getItem('tunnel_gems')) || 0;
+    let activeSkin = localStorage.getItem('tunnel_active_skin') || 'cyan';
+    let activeTheme = localStorage.getItem('tunnel_active_theme') || 'neon';
+    let unlockedSkins = JSON.parse(localStorage.getItem('tunnel_unlocked_skins')) || ['cyan'];
+    let unlockedThemes = JSON.parse(localStorage.getItem('tunnel_unlocked_themes')) || ['neon'];
+
+    const SKINS = {
+      cyan: { name: 'Siber Turkuaz', price: 0, color: 0x00ffcc, wireframe: true },
+      fire: { name: 'Alev Kırmızı', price: 25, color: 0xff3300, wireframe: true },
+      gold: { name: 'Saf Altın', price: 60, color: 0xffd700, wireframe: false },
+      matrix: { name: 'Matris Yeşil', price: 120, color: 0x00ff44, wireframe: true }
+    };
+
+    const THEMES = {
+      neon: { name: 'Siber Tünel', price: 0, fogColor: 0x050508, baseHue: 0.5 },
+      volcano: { name: 'Volkan Zindanı', price: 40, fogColor: 0x1a0505, baseHue: 0.0 },
+      void: { name: 'Derin Uzay', price: 80, fogColor: 0x0a0518, baseHue: 0.75 }
+    };
 
     let scene, camera, renderer;
     let player, playerLight;
@@ -265,10 +285,9 @@
     let score = 0;
     let highScore = localStorage.getItem('tunnel_high_score') || 0;
     
-    // Yavaş Yavaş Hızlanma Parametreleri
     let initialSpeed = 0.16;
     let currentBaseSpeed = 0.16;
-    let maxBaseSpeed = 0.42; // Ulaşabileceği maksimum taban hız
+    let maxBaseSpeed = 0.42;
     let speed = 0.16;
     let boostMultiplier = 1.6;
 
@@ -280,20 +299,38 @@
 
     const scoreEl = document.getElementById('score');
     const highScoreEl = document.getElementById('high-score');
+    const gemsHudEl = document.getElementById('gems-hud');
     const multiplierEl = document.getElementById('multiplier');
     const speedMeterEl = document.getElementById('speed-meter');
-    const overlay = document.getElementById('overlay');
+    const mainOverlay = document.getElementById('main-overlay');
+    const marketOverlay = document.getElementById('market-overlay');
     const titleEl = document.getElementById('title');
     const subtitleEl = document.getElementById('subtitle');
     const startBtn = document.getElementById('start-btn');
+    const openMarketBtn = document.getElementById('open-market-btn');
+    const closeMarketBtn = document.getElementById('close-market-btn');
 
-    highScoreEl.innerText = highScore;
+    function updateUI() {
+      highScoreEl.innerText = highScore;
+      gemsHudEl.innerText = totalGems;
+      document.getElementById('market-gems').innerText = totalGems;
+    }
+
+    function saveEconomy() {
+      localStorage.setItem('tunnel_gems', totalGems);
+      localStorage.setItem('tunnel_active_skin', activeSkin);
+      localStorage.setItem('tunnel_active_theme', activeTheme);
+      localStorage.setItem('tunnel_unlocked_skins', JSON.stringify(unlockedSkins));
+      localStorage.setItem('tunnel_unlocked_themes', JSON.stringify(unlockedThemes));
+      updateUI();
+    }
 
     function init() {
       const container = document.getElementById('game-container');
-
       scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x050508, 0.035);
+      
+      const themeConfig = THEMES[activeTheme];
+      scene.fog = new THREE.FogExp2(themeConfig.fogColor, 0.035);
 
       camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
       camera.position.set(0, 0, 5);
@@ -304,70 +341,154 @@
       container.appendChild(renderer.domElement);
 
       // Oyuncu (Küre)
+      const skinConfig = SKINS[activeSkin];
       const playerGeo = new THREE.SphereGeometry(0.35, 16, 16);
-      const playerMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true });
+      const playerMat = new THREE.MeshBasicMaterial({ color: skinConfig.color, wireframe: skinConfig.wireframe });
       player = new THREE.Mesh(playerGeo, playerMat);
       
-      playerLight = new THREE.PointLight(0x00ffcc, 4, 15);
+      playerLight = new THREE.PointLight(skinConfig.color, 4, 15);
       player.add(playerLight);
       scene.add(player);
 
       createTunnel();
       createParticles();
+      updateUI();
+      renderMarket();
 
       window.addEventListener('resize', onWindowResize);
       
-      // Mobil & Masaüstü Kontrolleri
-      const handlePointerDown = (e) => {
-        if (gameState === 'MENU' || gameState === 'GAMEOVER') {
-          startGame();
-          return;
+      // Kontroller
+      window.addEventListener('pointerdown', (e) => {
+        if (gameState === 'PLAYING') {
+          isHolding = true;
+          sfx.playBoost();
         }
-        isHolding = true;
-        sfx.playBoost();
-      };
-
-      const handlePointerUp = () => {
-        isHolding = false;
-      };
-
-      const handlePointerMove = (e) => {
-        let clientX = e.clientX;
-        let clientY = e.clientY;
-
-        if (clientX === undefined && e.touches && e.touches.length > 0) {
-          clientX = e.touches[0].clientX;
-          clientY = e.touches[0].clientY;
-        }
-
-        if (clientX === undefined || clientY === undefined) return;
+      });
+      window.addEventListener('pointerup', () => { isHolding = false; });
+      window.addEventListener('pointermove', (e) => {
+        let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        if (clientX === undefined) return;
 
         let x = (clientX / window.innerWidth) * 2 - 1;
         let y = -((clientY / window.innerHeight) * 2 - 1);
-
-        if (isNaN(x) || isNaN(y)) return;
-
         targetX = x * (tunnelRadius - 0.7);
         targetY = y * (tunnelRadius - 0.7);
-      };
+      });
 
-      window.addEventListener('pointerdown', handlePointerDown);
-      window.addEventListener('pointerup', handlePointerUp);
-      window.addEventListener('pointermove', handlePointerMove);
-
-      overlay.addEventListener('click', startGame);
+      startBtn.addEventListener('click', startGame);
+      openMarketBtn.addEventListener('click', () => {
+        mainOverlay.classList.add('hidden');
+        marketOverlay.classList.remove('hidden');
+      });
+      closeMarketBtn.addEventListener('click', () => {
+        marketOverlay.classList.add('hidden');
+        mainOverlay.classList.remove('hidden');
+      });
 
       animate();
     }
 
+    function applySkinAndTheme() {
+      const skin = SKINS[activeSkin];
+      player.material.color.setHex(skin.color);
+      player.material.wireframe = skin.wireframe;
+      playerLight.color.setHex(skin.color);
+
+      const theme = THEMES[activeTheme];
+      scene.fog.color.setHex(theme.fogColor);
+      renderer.setClearColor(theme.fogColor);
+    }
+
+    function renderMarket() {
+      const skinsGrid = document.getElementById('skins-grid');
+      const themesGrid = document.getElementById('themes-grid');
+      skinsGrid.innerHTML = '';
+      themesGrid.innerHTML = '';
+
+      // Skins Render
+      Object.keys(SKINS).forEach(key => {
+        const item = SKINS[key];
+        const isUnlocked = unlockedSkins.includes(key);
+        const isActive = activeSkin === key;
+
+        const card = document.createElement('div');
+        card.className = `shop-card ${isActive ? 'active' : ''}`;
+        
+        let btnHtml = '';
+        if (isActive) btnHtml = `<button class="item-btn equipped-btn">KUŞANILDI</button>`;
+        else if (isUnlocked) btnHtml = `<button class="item-btn equip-btn" onclick="equipSkin('${key}')">SEÇ</button>`;
+        else btnHtml = `<button class="item-btn buy-btn" onclick="buySkin('${key}')">💎 ${item.price}</button>`;
+
+        card.innerHTML = `<div class="item-name">${item.name}</div>${btnHtml}`;
+        skinsGrid.appendChild(card);
+      });
+
+      // Themes Render
+      Object.keys(THEMES).forEach(key => {
+        const item = THEMES[key];
+        const isUnlocked = unlockedThemes.includes(key);
+        const isActive = activeTheme === key;
+
+        const card = document.createElement('div');
+        card.className = `shop-card ${isActive ? 'active' : ''}`;
+        
+        let btnHtml = '';
+        if (isActive) btnHtml = `<button class="item-btn equipped-btn">KUŞANILDI</button>`;
+        else if (isUnlocked) btnHtml = `<button class="item-btn equip-btn" onclick="equipTheme('${key}')">SEÇ</button>`;
+        else btnHtml = `<button class="item-btn buy-btn" onclick="buyTheme('${key}')">💎 ${item.price}</button>`;
+
+        card.innerHTML = `<div class="item-name">${item.name}</div>${btnHtml}`;
+        themesGrid.appendChild(card);
+      });
+    }
+
+    window.buySkin = (key) => {
+      const skin = SKINS[key];
+      if (totalGems >= skin.price) {
+        totalGems -= skin.price;
+        unlockedSkins.push(key);
+        activeSkin = key;
+        saveEconomy();
+        applySkinAndTheme();
+        renderMarket();
+        sfx.playTung(800);
+      }
+    };
+
+    window.equipSkin = (key) => {
+      activeSkin = key;
+      saveEconomy();
+      applySkinAndTheme();
+      renderMarket();
+      sfx.playTung(600);
+    };
+
+    window.buyTheme = (key) => {
+      const theme = THEMES[key];
+      if (totalGems >= theme.price) {
+        totalGems -= theme.price;
+        unlockedThemes.push(key);
+        activeTheme = key;
+        saveEconomy();
+        applySkinAndTheme();
+        renderMarket();
+        sfx.playTung(800);
+      }
+    };
+
+    window.equipTheme = (key) => {
+      activeTheme = key;
+      saveEconomy();
+      applySkinAndTheme();
+      renderMarket();
+      sfx.playTung(600);
+    };
+
     function createTunnel() {
       const ringGeo = new THREE.TorusGeometry(tunnelRadius, 0.03, 8, 24);
       for (let i = 0; i < 40; i++) {
-        const ringMat = new THREE.MeshBasicMaterial({ 
-          color: 0x00f2fe, 
-          transparent: true, 
-          opacity: 0.45 
-        });
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f2fe, transparent: true, opacity: 0.45 });
         const ring = new THREE.Mesh(ringGeo, ringMat);
         ring.position.z = -i * 2.5;
         scene.add(ring);
@@ -379,13 +500,11 @@
       const pGeo = new THREE.BufferGeometry();
       const pCount = 350;
       const posArray = new Float32Array(pCount * 3);
-
       for (let i = 0; i < pCount * 3; i += 3) {
         posArray[i] = (Math.random() - 0.5) * 12;
         posArray[i + 1] = (Math.random() - 0.5) * 12;
         posArray[i + 2] = -Math.random() * 100;
       }
-
       pGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
       const pMat = new THREE.PointsMaterial({ size: 0.05, color: 0xffffff });
       particles = new THREE.Points(pGeo, pMat);
@@ -399,20 +518,17 @@
       if (type === 0) {
         const barGeo = new THREE.BoxGeometry(tunnelRadius * 1.8, 0.35, 0.35);
         const barMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
-        const bar = new THREE.Mesh(barGeo, barMat);
-        group.add(bar);
+        group.add(new THREE.Mesh(barGeo, barMat));
         group.userData = { rotSpeed: (Math.random() > 0.5 ? 1 : -1) * 0.014, type: 'bar' };
       } else if (type === 1) {
         const pillarGeo = new THREE.CylinderGeometry(0.95, 0.95, 0.4, 16);
         const pillarMat = new THREE.MeshBasicMaterial({ color: 0x9900ff });
-        const pillar = new THREE.Mesh(pillarGeo, pillarMat);
-        group.add(pillar);
+        group.add(new THREE.Mesh(pillarGeo, pillarMat));
         group.userData = { rotSpeed: 0, type: 'pillar' };
       } else {
         const ringGeo = new THREE.RingGeometry(0.85, tunnelRadius, 16, 1, 0, Math.PI * 1.3);
         const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, side: THREE.DoubleSide });
-        const ring = new THREE.Mesh(ringGeo, ringMat);
-        group.add(ring);
+        group.add(new THREE.Mesh(ringGeo, ringMat));
         group.userData = { rotSpeed: (Math.random() > 0.5 ? 1 : -1) * 0.016, type: 'ring' };
       }
 
@@ -420,21 +536,16 @@
       scene.add(group);
       obstacles.push(group);
 
-      // Rastgele Altın Küre (Gem) Ekle
-      if (Math.random() > 0.4) {
-        spawnGem(zPos - 6);
-      }
+      if (Math.random() > 0.35) spawnGem(zPos - 6);
     }
 
     function spawnGem(zPos) {
-      const gemGeo = new THREE.OctahedronGeometry(0.25, 0);
+      const gemGeo = new THREE.OctahedronGeometry(0.28, 0);
       const gemMat = new THREE.MeshBasicMaterial({ color: 0xffe600, wireframe: true });
       const gem = new THREE.Mesh(gemGeo, gemMat);
-      
       const angle = Math.random() * Math.PI * 2;
       const r = Math.random() * (tunnelRadius - 1.2);
       gem.position.set(Math.cos(angle) * r, Math.sin(angle) * r, zPos);
-      
       scene.add(gem);
       gems.push(gem);
     }
@@ -451,28 +562,25 @@
     function resetGameObjects() {
       for (let i = obstacles.length - 1; i >= 0; i--) removeObject(obstacles[i], obstacles, i);
       for (let i = gems.length - 1; i >= 0; i--) removeObject(gems[i], gems, i);
-      
-      obstacles = [];
-      gems = [];
-      for (let i = 1; i <= 8; i++) {
-        spawnObstacle(-i * 12);
-      }
+      obstacles = []; gems = [];
+      for (let i = 1; i <= 8; i++) spawnObstacle(-i * 12);
     }
 
     function startGame() {
       if (gameState === 'PLAYING') return;
       sfx.init();
+      applySkinAndTheme();
       gameState = 'PLAYING';
       score = 0;
       currentBaseSpeed = initialSpeed;
       speed = initialSpeed;
       combo = 1;
       player.position.set(0, 0, 0);
-      targetX = 0;
-      targetY = 0;
+      targetX = 0; targetY = 0;
       scoreEl.innerText = '0';
       multiplierEl.innerText = '1x MULTIPLIER';
-      overlay.classList.add('hidden');
+      mainOverlay.classList.add('hidden');
+      marketOverlay.classList.add('hidden');
       resetGameObjects();
     }
 
@@ -484,31 +592,26 @@
       if (score > highScore) {
         highScore = Math.floor(score);
         localStorage.setItem('tunnel_high_score', highScore);
-        highScoreEl.innerText = highScore;
       }
+      saveEconomy();
 
       titleEl.innerText = "OYUN BİTTİ";
-      subtitleEl.innerHTML = `SKOR: <b>${Math.floor(score)}</b><br>REKOR: <b>${highScore}</b>`;
+      subtitleEl.innerHTML = `SKOR: <b>${Math.floor(score)}</b><br>TOPLAM KÜRE: <b>${totalGems} 💎</b>`;
       startBtn.innerText = "TEKRAR OYNA";
-      overlay.classList.remove('hidden');
+      mainOverlay.classList.remove('hidden');
     }
 
     function animate() {
       requestAnimationFrame(animate);
 
       if (gameState === 'PLAYING') {
-        // --- ZAMANLA TATLI HIZLANMA ---
-        if (currentBaseSpeed < maxBaseSpeed) {
-          currentBaseSpeed += 0.00003; // Çok tatlı ve kademeli artış
-        }
-        
+        if (currentBaseSpeed < maxBaseSpeed) currentBaseSpeed += 0.00003;
         speed = isHolding ? currentBaseSpeed * boostMultiplier : currentBaseSpeed;
         speedMeterEl.innerText = `SPEED: ${Math.floor((currentBaseSpeed / initialSpeed) * 100)}%`;
 
         const targetScale = isHolding ? 0.45 : 1.0;
         player.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.15);
 
-        // Takip Hareketleri
         if (!isNaN(targetX) && !isNaN(targetY)) {
           player.position.x += (targetX - player.position.x) * 0.12;
           player.position.y += (targetY - player.position.y) * 0.12;
@@ -517,40 +620,33 @@
         player.rotation.z += 0.03;
         player.rotation.x += 0.02;
 
-        // Kamera Takibi ve Sarsıntı
         camera.position.x = player.position.x * 0.35 + (Math.random() - 0.5) * cameraShake;
         camera.position.y = player.position.y * 0.35 + (Math.random() - 0.5) * cameraShake;
         if (cameraShake > 0) cameraShake *= 0.85;
 
-        // Skor Hesaplama
         score += speed * 1.2 * combo;
         scoreEl.innerText = Math.floor(score);
 
-        // --- DINAMIK RENK DEĞİŞİMİ (CANLI NEON) ---
+        // Tema Renk Akışı
+        const baseHue = THEMES[activeTheme].baseHue;
         hueOffset += 0.002;
         tunnelRings.forEach((ring, idx) => {
           ring.position.z += speed;
           ring.rotation.z += 0.003;
-          
-          const ringHue = (hueOffset + idx * 0.02) % 1;
+          const ringHue = (baseHue + hueOffset + idx * 0.02) % 1;
           ring.material.color.setHSL(ringHue, 0.9, 0.5);
-
-          if (ring.position.z > 5) {
-            ring.position.z -= 100;
-          }
+          if (ring.position.z > 5) ring.position.z -= 100;
         });
 
         // Parçacık Hareketi
         const positions = particles.geometry.attributes.position.array;
         for (let i = 2; i < positions.length; i += 3) {
           positions[i] += speed * 1.8;
-          if (positions[i] > 5) {
-            positions[i] = -100;
-          }
+          if (positions[i] > 5) positions[i] = -100;
         }
         particles.geometry.attributes.position.needsUpdate = true;
 
-        // --- ALTIN KÜRE (GEM) KONTROLÜ ---
+        // Küre Toplama & Ekonomi
         for (let i = gems.length - 1; i >= 0; i--) {
           const gem = gems[i];
           gem.position.z += speed;
@@ -558,27 +654,23 @@
 
           const dist = player.position.distanceTo(gem.position);
           if (dist < 0.6 + (0.35 * player.scale.x)) {
-            // Küre Toplandı! ("Tung Tung")
             sfx.playTung(750);
-            score += 150 * combo;
+            totalGems += 1; // Küre Envantere Eklenir
+            saveEconomy();
             cameraShake = 0.12;
             removeObject(gem, gems, i);
             continue;
           }
-
-          if (gem.position.z > 5) {
-            removeObject(gem, gems, i);
-          }
+          if (gem.position.z > 5) removeObject(gem, gems, i);
         }
 
-        // --- ENGEL & ÇARPIŞMA KONTROLÜ ---
+        // Engeller
         for (let i = obstacles.length - 1; i >= 0; i--) {
           const obs = obstacles[i];
           obs.position.z += speed;
           obs.rotation.z += obs.userData.rotSpeed;
 
           const pRadius = 0.35 * player.scale.x;
-
           if (Math.abs(obs.position.z - player.position.z) < 0.4) {
             const dx = player.position.x - obs.position.x;
             const dy = player.position.y - obs.position.y;
@@ -591,39 +683,29 @@
               const rot = obs.rotation.z;
               const localX = dx * Math.cos(-rot) - dy * Math.sin(-rot);
               const localY = dx * Math.sin(-rot) + dy * Math.cos(-rot);
-
-              if (Math.abs(localX) < (tunnelRadius * 0.88 + pRadius) && Math.abs(localY) < (0.22 + pRadius)) {
-                isHit = true;
-              }
+              if (Math.abs(localX) < (tunnelRadius * 0.88 + pRadius) && Math.abs(localY) < (0.22 + pRadius)) isHit = true;
             } else if (obs.userData.type === 'ring') {
               if (dist > 0.85 - pRadius) {
-                let angle = Math.atan2(dy, dx) - obs.rotation.z;
-                angle = angle % (Math.PI * 2);
+                let angle = (Math.atan2(dy, dx) - obs.rotation.z) % (Math.PI * 2);
                 if (angle < 0) angle += Math.PI * 2;
-
-                if (angle >= 0 && angle <= Math.PI * 1.3) {
-                  isHit = true;
-                }
+                if (angle >= 0 && angle <= Math.PI * 1.3) isHit = true;
               }
             }
 
-            if (isHit) {
-              gameOver();
-            } else if (!obs.userData.passed) {
+            if (isHit) gameOver();
+            else if (!obs.userData.passed) {
               obs.userData.passed = true;
               combo = Math.min(combo + 1, 8);
               multiplierEl.innerText = `${combo}x MULTIPLIER`;
               sfx.playPass();
             }
           }
-
           if (obs.position.z > 5) {
             removeObject(obs, obstacles, i);
             spawnObstacle(-90);
           }
         }
       } else {
-        // Menü Döngüsü
         tunnelRings.forEach(ring => {
           ring.position.z += 0.03;
           ring.rotation.z += 0.002;
